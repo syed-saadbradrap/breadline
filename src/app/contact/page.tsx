@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { LocationMap } from '@/components/ui/location-map'
 
 export default function ContactPage() {
   const form = useForm<ContactInput>({
@@ -89,9 +90,8 @@ export default function ContactPage() {
             </div>
           </dl>
         </div>
-        <div className="flex aspect-[16/10] items-center justify-center rounded-2xl border border-dashed border-ink/15 bg-muted px-4 text-center text-sm font-semibold text-ink/45 sm:rounded-3xl">
-          Sector 9, North Karachi
-        </div>
+
+        <LocationMap title="Pin location" />
       </div>
     </div>
   )

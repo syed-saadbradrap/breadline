@@ -25,6 +25,14 @@ export function Footer() {
           </p>
           <div className="mt-4 space-y-1 text-sm text-white/55">
             <p>{siteInfo.address}</p>
+            <a
+              href={siteInfo.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:text-white"
+            >
+              View pin on Maps
+            </a>
             <a href={siteInfo.phoneHref} className="block hover:text-white">
               {siteInfo.phone}
             </a>

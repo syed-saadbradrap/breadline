@@ -39,6 +39,10 @@ export const checkoutSchema = z
       .string()
       .transform((v) => sanitizeText(v, 300))
       .optional(),
+    locationPin: z
+      .string()
+      .transform((v) => sanitizeText(v, 500))
+      .optional(),
     paymentMethod: z.enum(['cod', 'cash_restaurant'])
   })
   .superRefine((data, ctx) => {
@@ -48,6 +52,20 @@ export const checkoutSchema = z
       }
       if (!data.city?.trim()) {
         ctx.addIssue({ code: 'custom', message: 'City is required', path: ['city'] })
+      }
+      if (data.locationPin?.trim()) {
+        const pin = data.locationPin.trim()
+        const ok =
+          /^https?:\/\//i.test(pin) ||
+          /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(pin) ||
+          /maps\.google|google\.com\/maps|goo\.gl\/maps|maps\.app\.goo\.gl/i.test(pin)
+        if (!ok) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Paste a valid Google Maps pin link or lat,lng',
+            path: ['locationPin']
+          })
+        }
       }
     }
   })

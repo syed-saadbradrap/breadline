@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/ui/empty-state'
+import { LocationPinField } from '@/components/checkout/location-pin-field'
+import { LocationMap } from '@/components/ui/location-map'
 import { calcDeliveryFee, calcTax } from '@/lib/pricing'
 import { createOrderNumber } from '@/lib/utils'
 import type { Order } from '@/types/order'
@@ -35,6 +37,7 @@ export default function CheckoutPage() {
       city: 'Karachi',
       postalCode: '',
       instructions: '',
+      locationPin: '',
       paymentMethod: 'cod'
     }
   })
@@ -65,6 +68,7 @@ export default function CheckoutPage() {
       city: data.city,
       postalCode: data.postalCode,
       instructions: data.instructions,
+      locationPin: data.locationPin || undefined,
       paymentMethod: data.paymentMethod,
       items: items.map((i) => ({
         name: i.name,
@@ -153,16 +157,24 @@ export default function CheckoutPage() {
                 <Label htmlFor="postalCode">Postal code</Label>
                 <Input id="postalCode" {...form.register('postalCode')} />
               </div>
+              <LocationPinField
+                value={form.watch('locationPin') || ''}
+                onChange={(v) => form.setValue('locationPin', v, { shouldValidate: true })}
+                error={form.formState.errors.locationPin?.message}
+              />
               <div className="sm:col-span-2">
                 <Label htmlFor="instructions">Delivery instructions</Label>
                 <Textarea id="instructions" {...form.register('instructions')} />
               </div>
             </div>
           ) : (
-            <p className="mt-4 rounded-2xl bg-muted p-4 text-sm text-ink/70">
-              Pickup at Breadline — Sector 9, North Karachi. We’ll notify you when your order is
-              ready.
-            </p>
+            <div className="mt-4 space-y-4">
+              <p className="rounded-2xl bg-muted p-4 text-sm text-ink/70">
+                Pickup at Breadline — Sector 9, North Karachi. We’ll notify you when your order is
+                ready.
+              </p>
+              <LocationMap title="Pickup pin" />
+            </div>
           )}
         </section>
 

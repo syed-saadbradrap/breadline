@@ -29,20 +29,57 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://breadline.local'),
+  metadataBase: new URL('https://breadline-syed-8387s-projects.vercel.app'),
   title: {
-    default: 'Breadline | Crispy Burgers, Wraps & Sandwiches',
+    default: 'Breadline | Sandwiches & Burgers',
     template: '%s | Breadline'
   },
   description:
-    'Order from Breadline — freshly prepared burgers, wraps, sandwiches and sides. Toast. Bite. Repeat.',
+    'Premium quality sandwiches and burgers in North Karachi. Toast. Bite. Repeat. Est. 2026.',
+  applicationName: 'Breadline',
+  keywords: [
+    'Breadline',
+    'burgers',
+    'sandwiches',
+    'wraps',
+    'North Karachi',
+    'Sector 9',
+    'food delivery'
+  ],
+  authors: [{ name: 'Breadline' }],
+  creator: 'Breadline',
+  publisher: 'Breadline',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' }
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/favicon.ico']
+  },
   openGraph: {
-    title: 'Breadline',
-    description: 'Crispy. Juicy. Irresistible. Order burgers, wraps and sandwiches online.',
+    title: 'Breadline — Sandwiches & Burgers',
+    description:
+      'Premium quality sandwiches and burgers. Toast. Bite. Repeat. Est. 2026 · Sector 9, North Karachi.',
     type: 'website',
     locale: 'en_PK',
     siteName: 'Breadline',
-    images: [{ url: '/images/breadline-logo.png', width: 512, height: 512, alt: 'Breadline' }]
+    url: '/',
+    images: [
+      {
+        url: '/images/og.png',
+        width: 1200,
+        height: 1200,
+        alt: 'Breadline — Sandwiches & Burgers · Toast. Bite. Repeat.'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Breadline — Sandwiches & Burgers',
+    description:
+      'Premium quality sandwiches and burgers. Toast. Bite. Repeat. Est. 2026 · Sector 9, North Karachi.',
+    images: ['/images/og.png']
   },
   robots: { index: true, follow: true },
   alternates: { canonical: '/' },
@@ -55,7 +92,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Restaurant',
   name: 'Breadline',
-  image: '/images/breadline-logo.png',
+  image: '/images/breadline-logo-badge.png',
   servesCuisine: ['Burgers', 'Sandwiches', 'Wraps', 'Fast Food'],
   priceRange: '$$',
   telephone: '+92-342-4511939',
@@ -68,6 +105,12 @@ const jsonLd = {
     addressRegion: 'Sindh',
     addressCountry: 'PK'
   },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 24.9735,
+    longitude: 67.0662
+  },
+  hasMap: 'https://www.google.com/maps/search/?api=1&query=Sector%209%2C%20North%20Karachi%2C%20Karachi%2C%20Pakistan',
   url: 'https://breadline.com',
   acceptsReservations: false
 }

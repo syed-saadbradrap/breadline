@@ -31,6 +31,8 @@ export interface Order {
   city?: string
   postalCode?: string
   instructions?: string
+  /** Google Maps pin link or lat,lng for delivery */
+  locationPin?: string
   paymentMethod: PaymentMethod
   items: OrderItem[]
   subtotal: number

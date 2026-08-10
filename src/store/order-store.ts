@@ -27,6 +27,7 @@ function sanitizeOrder(order: Order): Order {
     city: order.city ? sanitizeText(order.city, 60) : undefined,
     postalCode: order.postalCode ? sanitizeText(order.postalCode, 16) : undefined,
     instructions: order.instructions ? sanitizeText(order.instructions, 300) : undefined,
+    locationPin: order.locationPin ? sanitizeText(order.locationPin, 500) : undefined,
     items: (order.items || []).slice(0, 40).map((item) => ({
       ...item,
       name: sanitizeText(item.name, 80),
