@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, Crosshair } from 'lucide-react'
+import { MapPin, Crosshair, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import type { ResolvedLocation } from '@/lib/geocode'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,51 +11,61 @@ import { Label } from '@/components/ui/label'
 export function LocationPinField({
   value,
   onChange,
-  error
+  error,
+  onResolved
 }: {
   value: string
   onChange: (value: string) => void
   error?: string
+  onResolved?: (loc: ResolvedLocation) => void
 }) {
   const [loading, setLoading] = useState(false)
 
-  const useMyLocation = () => {
+  const useMyLocation = async () => {
     if (!navigator.geolocation) {
       toast.error('Location not supported on this device')
       return
     }
 
     setLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords
-        const link = `https://www.google.com/maps?q=${latitude},${longitude}`
-        onChange(link)
-        setLoading(false)
-        toast.success('Pin location added')
-      },
-      () => {
-        setLoading(false)
-        toast.error('Could not get location. Allow location access or paste a Maps pin link.')
-      },
-      { enableHighAccuracy: true, timeout: 15000 }
-    )
+    try {
+      const coords = await new Promise<GeolocationCoordinates>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(pos.coords),
+          () => reject(new Error('denied')),
+          { enableHighAccuracy: true, timeout: 15000 }
+        )
+      })
+
+      const res = await fetch(
+        `/api/geo/reverse?lat=${coords.latitude}&lng=${coords.longitude}&source=gps`
+      )
+      if (!res.ok) throw new Error('reverse')
+      const loc = (await res.json()) as ResolvedLocation
+      onChange(loc.mapsUrl)
+      onResolved?.(loc)
+      toast.success('Exact pin location added')
+    } catch {
+      toast.error('Could not get exact location. Allow GPS or paste a Maps pin link.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="sm:col-span-2">
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <Label htmlFor="locationPin">Pin location (optional)</Label>
+        <Label htmlFor="locationPin">Pin location</Label>
         <Button
           type="button"
           size="sm"
           variant="soft"
-          onClick={useMyLocation}
+          onClick={() => void useMyLocation()}
           disabled={loading}
           className="h-8"
         >
-          <Crosshair className="h-3.5 w-3.5" />
-          {loading ? 'Getting…' : 'Use my location'}
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+          {loading ? 'Pinning…' : 'Exact GPS pin'}
         </Button>
       </div>
       <div className="relative">
@@ -63,17 +74,17 @@ export function LocationPinField({
           id="locationPin"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Paste Google Maps pin link, or tap Use my location"
+          placeholder="Auto-filled from GPS / IP, or paste Google Maps pin"
           className="pl-10"
         />
       </div>
       {error && <p className="mt-1 text-xs text-brand">{error}</p>}
       <p className="mt-1.5 text-xs text-ink/45">
-        Helps the rider find you faster — WhatsApp/Google Maps pin link also works.
+        Exact GPS pin helps the rider. WhatsApp location link also works.
       </p>
       {value && (
         <a
-          href={value}
+          href={value.startsWith('http') ? value : `https://www.google.com/maps?q=${value}`}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline"

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/ui/empty-state'
-import { LocationPinField } from '@/components/checkout/location-pin-field'
+import { DeliveryAddressFields } from '@/components/checkout/delivery-address-fields'
 import { LocationMap } from '@/components/ui/location-map'
 import { calcDeliveryFee, calcTax } from '@/lib/pricing'
 import { createOrderNumber } from '@/lib/utils'
@@ -142,27 +142,35 @@ export default function CheckoutPage() {
           </div>
 
           {orderType === 'delivery' ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" {...form.register('address')} />
-                <Err msg={form.formState.errors.address?.message} />
-              </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input id="city" {...form.register('city')} />
-                <Err msg={form.formState.errors.city?.message} />
-              </div>
-              <div>
-                <Label htmlFor="postalCode">Postal code</Label>
-                <Input id="postalCode" {...form.register('postalCode')} />
-              </div>
-              <LocationPinField
-                value={form.watch('locationPin') || ''}
-                onChange={(v) => form.setValue('locationPin', v, { shouldValidate: true })}
-                error={form.formState.errors.locationPin?.message}
+            <div>
+              <DeliveryAddressFields
+                values={{
+                  address: form.watch('address') || '',
+                  city: form.watch('city') || '',
+                  postalCode: form.watch('postalCode') || '',
+                  locationPin: form.watch('locationPin') || ''
+                }}
+                onChange={(patch) => {
+                  if (patch.address !== undefined) {
+                    form.setValue('address', patch.address, { shouldValidate: true })
+                  }
+                  if (patch.city !== undefined) {
+                    form.setValue('city', patch.city, { shouldValidate: true })
+                  }
+                  if (patch.postalCode !== undefined) {
+                    form.setValue('postalCode', patch.postalCode, { shouldValidate: true })
+                  }
+                  if (patch.locationPin !== undefined) {
+                    form.setValue('locationPin', patch.locationPin, { shouldValidate: true })
+                  }
+                }}
+                errors={{
+                  address: form.formState.errors.address?.message,
+                  city: form.formState.errors.city?.message,
+                  locationPin: form.formState.errors.locationPin?.message
+                }}
               />
-              <div className="sm:col-span-2">
+              <div className="mt-4">
                 <Label htmlFor="instructions">Delivery instructions</Label>
                 <Textarea id="instructions" {...form.register('instructions')} />
               </div>
