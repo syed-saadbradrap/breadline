@@ -22,7 +22,7 @@ export default function AccountPage() {
         />
         <Card
           title="Saved Addresses"
-          body="Home · Main Boulevard, Your City"
+          body="Home · Sector 9, North Karachi"
           action={{ href: '/checkout', label: 'Use at checkout' }}
         />
         <Card

@@ -32,7 +32,7 @@ export default function CheckoutPage() {
       email: '',
       orderType: 'delivery',
       address: '',
-      city: '',
+      city: 'Karachi',
       postalCode: '',
       instructions: '',
       paymentMethod: 'cod'
@@ -160,7 +160,8 @@ export default function CheckoutPage() {
             </div>
           ) : (
             <p className="mt-4 rounded-2xl bg-muted p-4 text-sm text-ink/70">
-              Pickup at Breadline counter. We’ll notify you when your order is ready.
+              Pickup at Breadline — Sector 9, North Karachi. We’ll notify you when your order is
+              ready.
             </p>
           )}
         </section>

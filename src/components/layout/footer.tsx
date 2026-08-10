@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { siteInfo } from '@/data/site'
 
 export function Footer() {
   return (
@@ -22,6 +23,16 @@ export function Footer() {
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
             Freshly prepared burgers, wraps, sandwiches and sides made for your cravings.
           </p>
+          <div className="mt-4 space-y-1 text-sm text-white/55">
+            <p>{siteInfo.address}</p>
+            <a href={siteInfo.phoneHref} className="block hover:text-white">
+              {siteInfo.phone}
+            </a>
+            <a href={siteInfo.emailHref} className="block hover:text-white">
+              {siteInfo.email}
+            </a>
+            <p>{siteInfo.hours}</p>
+          </div>
           <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.24em] text-white/35">
             Toast. Bite. Repeat.
           </p>

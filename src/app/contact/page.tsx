@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { contactSchema, type ContactInput } from '@/lib/validation'
+import { siteInfo } from '@/data/site'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -59,29 +60,37 @@ export default function ContactPage() {
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-3xl border border-ink/5 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-xl font-bold">Visit us</h2>
+        <div className="rounded-2xl border border-ink/5 bg-white p-5 shadow-sm sm:rounded-3xl sm:p-6">
+          <h2 className="font-display text-2xl tracking-[0.04em]">Visit us</h2>
           <dl className="mt-4 space-y-3 text-sm text-ink/70">
             <div>
               <dt className="font-semibold text-ink">Address</dt>
-              <dd>Main Boulevard, Your City</dd>
+              <dd>{siteInfo.address}</dd>
             </div>
             <div>
               <dt className="font-semibold text-ink">Phone</dt>
-              <dd>+92 300 0000000</dd>
+              <dd>
+                <a href={siteInfo.phoneHref} className="hover:text-brand">
+                  {siteInfo.phone}
+                </a>
+              </dd>
             </div>
             <div>
               <dt className="font-semibold text-ink">Email</dt>
-              <dd>hello@breadline.local</dd>
+              <dd>
+                <a href={siteInfo.emailHref} className="hover:text-brand">
+                  {siteInfo.email}
+                </a>
+              </dd>
             </div>
             <div>
               <dt className="font-semibold text-ink">Opening hours</dt>
-              <dd>Daily 12:00 PM – 12:00 AM</dd>
+              <dd>{siteInfo.hours}</dd>
             </div>
           </dl>
         </div>
-        <div className="flex aspect-[16/10] items-center justify-center rounded-3xl border border-dashed border-ink/15 bg-muted text-sm font-semibold text-ink/45">
-          Map placeholder
+        <div className="flex aspect-[16/10] items-center justify-center rounded-2xl border border-dashed border-ink/15 bg-muted px-4 text-center text-sm font-semibold text-ink/45 sm:rounded-3xl">
+          Sector 9, North Karachi
         </div>
       </div>
     </div>

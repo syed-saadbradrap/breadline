@@ -58,13 +58,17 @@ const jsonLd = {
   image: '/images/breadline-logo.png',
   servesCuisine: ['Burgers', 'Sandwiches', 'Wraps', 'Fast Food'],
   priceRange: '$$',
-  telephone: '+92-300-0000000',
+  telephone: '+92-342-4511939',
+  email: 'contact@breadline.com',
+  openingHours: 'Mo-Su 16:00-04:00',
   address: {
     '@type': 'PostalAddress',
-    addressLocality: 'Your City',
+    streetAddress: 'Sector 9',
+    addressLocality: 'North Karachi',
+    addressRegion: 'Sindh',
     addressCountry: 'PK'
   },
-  url: 'https://breadline.local',
+  url: 'https://breadline.com',
   acceptsReservations: false
 }
 
