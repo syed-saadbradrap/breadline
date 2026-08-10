@@ -141,9 +141,17 @@ export default function CheckoutPage() {
               <Err msg={form.formState.errors.phone?.message} />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...form.register('email')} />
+              <Label htmlFor="email">Email (order confirmation)</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@email.com"
+                {...form.register('email')}
+              />
               <Err msg={form.formState.errors.email?.message} />
+              <p className="mt-1 text-xs text-ink/45">
+                We’ll send a premium confirmation with your items &amp; total.
+              </p>
             </div>
           </div>
         </section>

@@ -20,8 +20,7 @@ export const checkoutSchema = z
     email: z
       .string()
       .transform((v) => sanitizeText(v, 120).toLowerCase())
-      .pipe(z.string().email('Valid email required').or(z.literal('')))
-      .optional(),
+      .pipe(z.string().email('Email is required for order confirmation').max(120)),
     orderType: z.enum(['delivery', 'takeaway']),
     address: z
       .string()

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createOnlineOrder } from '@/lib/online-orders/store'
 import type { OnlineOrderPayload } from '@/lib/online-orders/types'
+import { sendOrderConfirmationEmail } from '@/lib/email/order-confirmation'
 import { sanitizeText } from '@/lib/sanitize'
 
 export const runtime = 'nodejs'
@@ -22,7 +23,7 @@ const orderSchema = z.object({
   type: z.enum(['delivery', 'takeaway']),
   customerName: z.string().min(2).max(80),
   phone: z.string().min(8).max(20),
-  email: z.string().email().max(120).optional(),
+  email: z.string().email().max(120),
   address: z.string().max(240).optional(),
   city: z.string().max(80).optional(),
   postalCode: z.string().max(20).optional(),
@@ -69,7 +70,17 @@ export async function POST(request: Request) {
     }
 
     const saved = await createOnlineOrder(payload)
-    return NextResponse.json({ ok: true, order: saved }, { status: 201 })
+
+    // Best-effort: order succeeds even if email provider is down
+    const emailResult = await sendOrderConfirmationEmail(payload).catch((err) => {
+      console.error('[email] unexpected failure', err)
+      return { sent: false as const, reason: 'unexpected' }
+    })
+
+    return NextResponse.json(
+      { ok: true, order: saved, emailSent: emailResult.sent },
+      { status: 201 }
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create order'
     return NextResponse.json({ error: message }, { status: 500 })
