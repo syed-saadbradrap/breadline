@@ -2,15 +2,25 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useOrderStore } from '@/store/order-store'
 import { Button } from '@/components/ui/button'
 import { formatMoney } from '@/lib/utils'
+import { OrderSuccessPopup } from '@/components/checkout/order-success-popup'
 
 function ConfirmationContent() {
   const params = useSearchParams()
   const id = params.get('id')
   const order = useOrderStore((s) => (id ? s.getOrder(id) : s.orders[0]))
+  const [popupOpen, setPopupOpen] = useState(false)
+
+  useEffect(() => {
+    if (!order) return
+    const key = `breadline-order-popup:${order.id}`
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
+    setPopupOpen(true)
+  }, [order])
 
   if (!order) {
     return (
@@ -25,6 +35,8 @@ function ConfirmationContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+      <OrderSuccessPopup order={order} open={popupOpen} onOpenChange={setPopupOpen} />
+
       <div className="rounded-[2rem] border border-ink/5 bg-white p-8 text-center shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand">Success</p>
         <h1 className="mt-2 font-display text-4xl font-extrabold text-ink">Order Confirmed!</h1>
@@ -32,8 +44,17 @@ function ConfirmationContent() {
           Order <span className="font-bold text-ink">{order.orderNumber}</span>
         </p>
         <p className="mt-1 text-sm text-ink/50">
-          Estimated {order.type === 'delivery' ? 'delivery' : 'pickup'}: ~{order.estimatedMinutes} mins
+          Estimated {order.type === 'delivery' ? 'delivery' : 'pickup'}: ~{order.estimatedMinutes}{' '}
+          mins
         </p>
+
+        <button
+          type="button"
+          onClick={() => setPopupOpen(true)}
+          className="mt-4 text-sm font-semibold text-brand hover:underline"
+        >
+          View what you ordered
+        </button>
 
         <div className="mt-8 space-y-2 text-left text-sm">
           {order.items.map((item, i) => (

@@ -116,9 +116,10 @@ export function DeliveryAddressFields({
 
   const pickSuggestion = (s: GeoSuggestion) => {
     skipNextSearch.current = true
-    setQuery(s.address)
+    const addressLine = s.address || s.title
+    setQuery(addressLine)
     onChange({
-      address: s.address,
+      address: addressLine,
       city: s.city || 'Karachi',
       postalCode: s.postalCode || '',
       locationPin: s.mapsUrl
@@ -151,7 +152,7 @@ export function DeliveryAddressFields({
             id="address"
             value={query}
             autoComplete="off"
-            placeholder="Start typing area, street, society…"
+            placeholder="Type area, street, or society (English)…"
             className="pl-10"
             onChange={(e) => {
               setQuery(e.target.value)
@@ -179,8 +180,10 @@ export function DeliveryAddressFields({
                 >
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                   <span className="min-w-0">
-                    <span className="block font-semibold text-ink">{s.address}</span>
-                    <span className="block truncate text-xs text-ink/50">{s.label}</span>
+                    <span className="block font-semibold text-ink">{s.title || s.address}</span>
+                    <span className="block truncate text-xs text-ink/50">
+                      {s.subtitle || s.label}
+                    </span>
                   </span>
                 </button>
               </li>

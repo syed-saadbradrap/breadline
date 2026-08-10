@@ -4,9 +4,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, ShoppingBag, User } from 'lucide-react'
+import { Bike, Menu, Search, ShoppingBag, Store, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/cart-store'
+import { useFulfillmentStore } from '@/store/fulfillment-store'
 import { MobileMenu } from './mobile-menu'
 import { SearchModal } from './search-modal'
 import { CartDrawer } from '@/components/cart/cart-drawer'
@@ -26,6 +27,9 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const count = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0))
+  const orderType = useFulfillmentStore((s) => s.orderType)
+  const hasChosen = useFulfillmentStore((s) => s.hasChosen)
+  const openPicker = useFulfillmentStore((s) => s.openPicker)
   const onHome = pathname === '/'
 
   useEffect(() => {
@@ -102,6 +106,26 @@ export function Header() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+            {hasChosen && (
+              <button
+                type="button"
+                onClick={openPicker}
+                className={cn(
+                  'mr-0.5 inline-flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold transition sm:px-2.5',
+                  transparent
+                    ? 'bg-white/12 text-white hover:bg-white/18'
+                    : 'bg-brand/10 text-brand hover:bg-brand/15'
+                )}
+                aria-label="Change delivery or takeaway"
+              >
+                {orderType === 'delivery' ? (
+                  <Bike className="h-3.5 w-3.5" />
+                ) : (
+                  <Store className="h-3.5 w-3.5" />
+                )}
+                <span className="capitalize">{orderType}</span>
+              </button>
+            )}
             {/* Search lives in bottom nav on mobile */}
             <button
               className={cn(

@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
 import { Preloader } from '@/components/layout/preloader'
+import { OrderTypePopup } from '@/components/layout/order-type-popup'
 import './globals.css'
 
 const display = Bebas_Neue({
@@ -171,6 +172,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           </div>
         </div>
         <Preloader />
+        <OrderTypePopup />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,6 +8,7 @@ import { toast } from 'sonner'
 import { checkoutSchema, type CheckoutInput } from '@/lib/validation'
 import { useCartStore, cartLineTotal } from '@/store/cart-store'
 import { useOrderStore } from '@/store/order-store'
+import { useFulfillmentStore } from '@/store/fulfillment-store'
 import { CartSummary } from '@/components/cart/cart-summary'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +27,8 @@ export default function CheckoutPage() {
   const subtotal = useCartStore((s) => s.subtotal())
   const clear = useCartStore((s) => s.clear)
   const addOrder = useOrderStore((s) => s.addOrder)
+  const preferredType = useFulfillmentStore((s) => s.orderType)
+  const setFulfillment = useFulfillmentStore((s) => s.setOrderType)
 
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -32,17 +36,21 @@ export default function CheckoutPage() {
       fullName: '',
       phone: '',
       email: '',
-      orderType: 'delivery',
+      orderType: preferredType,
       address: '',
       city: 'Karachi',
       postalCode: '',
       instructions: '',
       locationPin: '',
-      paymentMethod: 'cod'
+      paymentMethod: preferredType === 'takeaway' ? 'cash_restaurant' : 'cod'
     }
   })
 
   const orderType = form.watch('orderType')
+
+  useEffect(() => {
+    form.setValue('orderType', preferredType)
+  }, [preferredType, form])
 
   if (!items.length) {
     return (
@@ -131,7 +139,14 @@ export default function CheckoutPage() {
               <button
                 key={t}
                 type="button"
-                onClick={() => form.setValue('orderType', t)}
+                onClick={() => {
+                  form.setValue('orderType', t)
+                  setFulfillment(t)
+                  form.setValue(
+                    'paymentMethod',
+                    t === 'takeaway' ? 'cash_restaurant' : 'cod'
+                  )
+                }}
                 className={`rounded-2xl border px-4 py-3 text-sm font-semibold capitalize ${
                   orderType === t ? 'border-brand bg-brand/5 text-brand' : 'border-ink/10'
                 }`}

@@ -20,10 +20,12 @@ export async function GET(request: Request) {
     url.searchParams.set('lon', lng)
     url.searchParams.set('addressdetails', '1')
     url.searchParams.set('zoom', '18')
+    url.searchParams.set('accept-language', 'en')
 
     const res = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
+        'Accept-Language': 'en',
         'User-Agent': 'BreadlineWeb/1.0 (contact@breadline.com)'
       },
       next: { revalidate: 60 }

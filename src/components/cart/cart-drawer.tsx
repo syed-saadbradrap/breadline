@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { QuantitySelector } from '@/components/ui/quantity-selector'
 import { formatMoney } from '@/lib/utils'
 import { calcDeliveryFee, calcTax } from '@/lib/pricing'
+import { useFulfillmentStore } from '@/store/fulfillment-store'
 
 export function CartDrawer({
   open,
@@ -21,7 +22,8 @@ export function CartDrawer({
   const setQuantity = useCartStore((s) => s.setQuantity)
   const removeItem = useCartStore((s) => s.removeItem)
   const subtotal = useCartStore((s) => s.subtotal())
-  const delivery = calcDeliveryFee(subtotal, 'delivery')
+  const orderType = useFulfillmentStore((s) => s.orderType)
+  const delivery = calcDeliveryFee(subtotal, orderType)
   const tax = calcTax(subtotal)
   const total = subtotal + delivery + tax
 
@@ -93,7 +95,10 @@ export function CartDrawer({
             <div className="border-t border-ink/10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-5">
               <div className="space-y-1 text-sm">
                 <Row label="Subtotal" value={formatMoney(subtotal)} />
-                <Row label="Delivery" value={formatMoney(delivery)} />
+                <Row
+                  label={orderType === 'delivery' ? 'Delivery' : 'Pickup'}
+                  value={formatMoney(delivery)}
+                />
                 <Row label="Tax" value={formatMoney(tax)} />
                 <div className="flex justify-between pt-2 font-display text-lg tracking-[0.02em]">
                   <span>Total</span>

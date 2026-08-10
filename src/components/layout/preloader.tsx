@@ -60,6 +60,7 @@ export function Preloader() {
         setVisible(false)
         document.documentElement.classList.remove('bl-loading')
         document.body.style.overflow = ''
+        window.dispatchEvent(new Event('breadline:ready'))
       }, 320)
     }
 
