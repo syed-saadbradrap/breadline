@@ -60,7 +60,7 @@ export default function CheckoutPage() {
     )
   }
 
-  const onSubmit = (data: CheckoutInput) => {
+  const onSubmit = async (data: CheckoutInput) => {
     const deliveryFee = calcDeliveryFee(subtotal, data.orderType)
     const tax = calcTax(subtotal)
     const order: Order = {
@@ -93,9 +93,25 @@ export default function CheckoutPage() {
       total: subtotal + deliveryFee + tax,
       estimatedMinutes: data.orderType === 'delivery' ? 40 : 25
     }
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      })
+      if (!res.ok) {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null
+        throw new Error(err?.error || 'Could not send order to restaurant')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not place order')
+      return
+    }
+
     addOrder(order)
     clear()
-    toast.success('Order placed successfully')
+    toast.success('Order placed — sent to Breadline POS')
     router.push(`/order-confirmation?id=${order.id}`)
   }
 
@@ -217,8 +233,13 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <Button type="submit" size="lg" className="w-full lg:w-auto">
-          Place Order
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full lg:w-auto"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? 'Placing order…' : 'Place Order'}
         </Button>
       </form>
 
