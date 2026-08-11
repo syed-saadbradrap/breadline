@@ -110,47 +110,58 @@ export function StoreClosedPopup() {
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[92] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[92] w-full overflow-hidden rounded-t-[1.75rem] bg-[#1a1212] text-white shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[min(440px,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.75rem]">
+        <Dialog.Overlay className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          className={cn(
+            'fixed z-[1200] w-full overflow-hidden bg-[#1a1212] text-white shadow-2xl focus:outline-none',
+            // Mobile: bottom sheet under header/banner
+            'inset-x-0 bottom-0 max-h-[min(85dvh,640px)] rounded-t-[1.75rem]',
+            // Tablet/desktop: lower center (not mid-screen under header)
+            'sm:inset-x-auto sm:left-1/2 sm:right-auto sm:top-auto',
+            'sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))]',
+            'sm:w-[min(420px,calc(100vw-2rem))] sm:max-h-[min(78dvh,620px)]',
+            'sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-[1.75rem]'
+          )}
+        >
           <div
             className="pointer-events-none absolute inset-0 opacity-90"
             style={{
               background:
-                'radial-gradient(ellipse 90% 60% at 50% -20%, rgba(196,30,34,0.55), transparent 55%)'
+                'radial-gradient(ellipse 90% 55% at 50% -10%, rgba(196,30,34,0.5), transparent 55%)'
             }}
           />
 
-          <div className="relative px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-6">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
+          <div className="relative max-h-[inherit] overflow-y-auto overscroll-contain px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
 
             <div className="flex flex-col items-center text-center">
               <Image
                 src="/images/breadline-logo.png"
                 alt="Breadline"
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-white/20"
+                width={56}
+                height={56}
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-white/20 sm:h-14 sm:w-14"
                 priority
               />
-              <p className="mt-4 text-[11px] font-bold tracking-[0.28em] text-white/45 uppercase">
+              <p className="mt-3 text-[10px] font-bold tracking-[0.28em] text-white/45 uppercase sm:text-[11px]">
                 Kitchen closed
               </p>
-              <Dialog.Title className="mt-2 font-display text-[2.5rem] leading-none tracking-[0.04em]">
+              <Dialog.Title className="mt-1.5 font-display text-[1.85rem] leading-[1.05] tracking-[0.04em] sm:text-[2.25rem]">
                 We’re closed
                 <span className="text-brand"> right now</span>
               </Dialog.Title>
-              <Dialog.Description className="mt-3 max-w-sm text-sm leading-relaxed text-white/65">
+              <Dialog.Description className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-white/65 sm:text-sm">
                 Online ordering is paused. Menu dekh sakte ho, ya order schedule kar lo — kitchen{' '}
                 <strong className="font-semibold text-white">{openLabel}</strong> open hogi.
               </Dialog.Description>
             </div>
 
-            <div className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-white/55">
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/55 sm:text-xs">
               <Clock className="h-3.5 w-3.5 shrink-0 text-brand" />
-              Hours · {HOURS_LABEL} · Karachi
+              <span className="truncate">Hours · {HOURS_LABEL} · Karachi</span>
             </div>
 
-            <div className="mt-5 grid gap-3">
+            <div className="mt-4 grid gap-2.5 sm:gap-3">
               <ActionButton
                 primary
                 icon={<CalendarClock className="h-5 w-5" />}
@@ -169,7 +180,7 @@ export function StoreClosedPopup() {
             <button
               type="button"
               onClick={dismiss}
-              className="mt-4 w-full py-2 text-center text-xs font-medium text-white/40 transition hover:text-white/70"
+              className="mt-3 w-full py-2 text-center text-xs font-medium text-white/40 transition hover:text-white/70 sm:mt-4"
             >
               Continue browsing site
             </button>
@@ -198,7 +209,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3.5 rounded-2xl border px-4 py-4 text-left transition',
+        'flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition sm:gap-3.5 sm:px-4 sm:py-4',
         primary
           ? 'border-brand/40 bg-brand text-white hover:bg-brand-dark'
           : 'border-white/12 bg-white/5 text-white hover:border-white/25 hover:bg-white/10'
@@ -206,15 +217,20 @@ function ActionButton({
     >
       <span
         className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11',
           primary ? 'bg-white/15' : 'bg-white/10 text-brand'
         )}
       >
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block font-display text-xl tracking-[0.03em]">{title}</span>
-        <span className={cn('mt-0.5 block text-sm', primary ? 'text-white/80' : 'text-white/50')}>
+        <span className="block font-display text-lg tracking-[0.03em] sm:text-xl">{title}</span>
+        <span
+          className={cn(
+            'mt-0.5 block text-xs sm:text-sm',
+            primary ? 'text-white/80' : 'text-white/50'
+          )}
+        >
           {subtitle}
         </span>
       </span>
