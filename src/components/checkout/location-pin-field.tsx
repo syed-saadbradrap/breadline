@@ -1,12 +1,26 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { MapPin, Crosshair, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ResolvedLocation } from '@/lib/geocode'
+import type { MapCoords } from '@/lib/map-coords'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+const MapPinPicker = dynamic(
+  () => import('@/components/checkout/map-pin-picker').then((m) => m.MapPinPicker),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-3 flex h-[240px] items-center justify-center rounded-2xl border border-ink/10 bg-muted text-sm text-ink/50 sm:h-[280px]">
+        Loading map…
+      </div>
+    )
+  }
+)
 
 export function LocationPinField({
   value,
@@ -20,6 +34,32 @@ export function LocationPinField({
   onResolved?: (loc: ResolvedLocation) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [mapBusy, setMapBusy] = useState(false)
+
+  const applyCoords = async (
+    coords: MapCoords,
+    opts?: { fillAddress?: boolean; source?: 'gps' | 'search' }
+  ) => {
+    const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+    onChange(mapsUrl)
+
+    if (!opts?.fillAddress) return
+
+    setMapBusy(true)
+    try {
+      const res = await fetch(
+        `/api/geo/reverse?lat=${coords.lat}&lng=${coords.lng}&source=${opts.source || 'gps'}`
+      )
+      if (!res.ok) return
+      const loc = (await res.json()) as ResolvedLocation
+      onChange(loc.mapsUrl)
+      onResolved?.(loc)
+    } catch {
+      // pin URL already set
+    } finally {
+      setMapBusy(false)
+    }
+  }
 
   const useMyLocation = async () => {
     if (!navigator.geolocation) {
@@ -37,16 +77,13 @@ export function LocationPinField({
         )
       })
 
-      const res = await fetch(
-        `/api/geo/reverse?lat=${coords.latitude}&lng=${coords.longitude}&source=gps`
+      await applyCoords(
+        { lat: coords.latitude, lng: coords.longitude },
+        { fillAddress: true, source: 'gps' }
       )
-      if (!res.ok) throw new Error('reverse')
-      const loc = (await res.json()) as ResolvedLocation
-      onChange(loc.mapsUrl)
-      onResolved?.(loc)
-      toast.success('Exact pin location added')
+      toast.success('Exact pin placed on map')
     } catch {
-      toast.error('Could not get exact location. Allow GPS or paste a Maps pin link.')
+      toast.error('Could not get GPS. Allow location or tap the map to place pin.')
     } finally {
       setLoading(false)
     }
@@ -68,19 +105,34 @@ export function LocationPinField({
           {loading ? 'Pinning…' : 'Exact GPS pin'}
         </Button>
       </div>
+
+      <MapPinPicker
+        value={value}
+        onPick={(coords) => {
+          void applyCoords(coords).then(() => {
+            toast.success('Delivery pin updated')
+          })
+        }}
+        className="mb-3"
+      />
+
       <div className="relative">
         <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
         <Input
           id="locationPin"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Auto-filled from GPS / IP, or paste Google Maps pin"
+          placeholder="Pin updates when you tap the map"
           className="pl-10"
+          readOnly
         />
+        {mapBusy && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-ink/35" />
+        )}
       </div>
       {error && <p className="mt-1 text-xs text-brand">{error}</p>}
       <p className="mt-1.5 text-xs text-ink/45">
-        Exact GPS pin helps the rider. WhatsApp location link also works.
+        Use the map for your exact house pin — drag the red marker or tap the street.
       </p>
       {value && (
         <a
@@ -89,7 +141,7 @@ export function LocationPinField({
           rel="noopener noreferrer"
           className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline"
         >
-          Preview pin on Maps
+          Open pin in Google Maps
         </a>
       )}
     </div>
