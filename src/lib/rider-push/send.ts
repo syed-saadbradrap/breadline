@@ -33,7 +33,10 @@ export async function sendRiderPush(payload: {
   }
 
   const subs = await listRiderPushSubscriptions()
-  if (subs.length === 0) return { sent: 0, failed: 0 }
+  if (subs.length === 0) {
+    console.warn('Rider push skipped — no phone subscriptions saved (open /rider and Allow notifications)')
+    return { sent: 0, failed: 0 }
+  }
 
   const data = JSON.stringify({
     title: payload.title,

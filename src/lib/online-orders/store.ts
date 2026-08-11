@@ -374,15 +374,18 @@ export async function updateKitchenProgress(
     previousRider !== 'out_for_delivery' &&
     previousRider !== 'delivered'
   ) {
-    void import('@/lib/rider-push/send')
-      .then(({ notifyRidersFoodReady }) =>
-        notifyRidersFoodReady({
-          id: record.id,
-          orderNumber: record.orderNumber,
-          customerName: record.customerName
-        })
-      )
-      .catch((err) => console.error('Rider push notify failed', err))
+    // Await push so serverless (Vercel) does not freeze before web-push finishes
+    try {
+      const { notifyRidersFoodReady } = await import('@/lib/rider-push/send')
+      const result = await notifyRidersFoodReady({
+        id: record.id,
+        orderNumber: record.orderNumber,
+        customerName: record.customerName
+      })
+      console.info('Rider push after kitchen', kitchenStatus, result)
+    } catch (err) {
+      console.error('Rider push notify failed', err)
+    }
   }
 
   return record
@@ -415,15 +418,17 @@ export async function updateRiderStatus(
   })
 
   if (record && riderStatus === 'ready' && previousStatus !== 'ready') {
-    void import('@/lib/rider-push/send')
-      .then(({ notifyRidersFoodReady }) =>
-        notifyRidersFoodReady({
-          id: record.id,
-          orderNumber: record.orderNumber,
-          customerName: record.customerName
-        })
-      )
-      .catch((err) => console.error('Rider push notify failed', err))
+    try {
+      const { notifyRidersFoodReady } = await import('@/lib/rider-push/send')
+      const result = await notifyRidersFoodReady({
+        id: record.id,
+        orderNumber: record.orderNumber,
+        customerName: record.customerName
+      })
+      console.info('Rider push after riderStatus ready', result)
+    } catch (err) {
+      console.error('Rider push notify failed', err)
+    }
   }
 
   return record

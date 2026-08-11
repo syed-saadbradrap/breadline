@@ -197,10 +197,12 @@ export default function RiderPage() {
 
   useEffect(() => {
     if (!pin) return
-    void hasRiderPushSubscription().then((ok) => {
-      setPushOn(ok)
-      if (!ok) void turnOnPush(pin)
-    })
+    // Always re-save subscription to server (local ON but server empty = silent push miss)
+    void (async () => {
+      const local = await hasRiderPushSubscription()
+      setPushOn(local)
+      await turnOnPush(pin)
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when pin changes
   }, [pin])
 
