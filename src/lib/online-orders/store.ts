@@ -352,8 +352,15 @@ export async function updateKitchenProgress(
       kitchenStatus,
       kitchenUpdatedAt: now
     }
-    if (current.type === 'delivery' && kitchenStatus === 'READY') {
-      next.riderStatus = current.riderStatus === 'delivered' ? 'delivered' : 'ready'
+    // READY or kitchen COMPLETED (= handed to rider) both release the mobile rider job
+    if (
+      current.type === 'delivery' &&
+      (kitchenStatus === 'READY' || kitchenStatus === 'COMPLETED')
+    ) {
+      next.riderStatus =
+        current.riderStatus === 'delivered' || current.riderStatus === 'out_for_delivery'
+          ? current.riderStatus
+          : 'ready'
       next.riderUpdatedAt = now
     }
     return next
@@ -362,7 +369,7 @@ export async function updateKitchenProgress(
   if (
     record &&
     record.type === 'delivery' &&
-    kitchenStatus === 'READY' &&
+    (kitchenStatus === 'READY' || kitchenStatus === 'COMPLETED') &&
     previousRider !== 'ready' &&
     previousRider !== 'out_for_delivery' &&
     previousRider !== 'delivered'
