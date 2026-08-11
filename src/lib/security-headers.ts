@@ -6,7 +6,9 @@ export function getSecurityHeaders(isProd: boolean): Record<string, string> {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.google.com https://*.gstatic.com https://*.googleapis.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
+    // Push subscribe uses FCM / Mozilla / Apple push endpoints from the browser
+    "connect-src 'self' https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://fcm.googleapis.com https://*.googleapis.com https://*.gstatic.com https://updates.push.services.mozilla.com https://*.push.apple.com wss://*.push.apple.com",
+    "worker-src 'self'",
     "media-src 'self'",
     "frame-src 'self' https://www.google.com https://maps.google.com https://www.google.com/maps",
     "object-src 'none'",
@@ -22,7 +24,7 @@ export function getSecurityHeaders(isProd: boolean): Record<string, string> {
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy':
-      'camera=(), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()',
+      'camera=(), microphone=(), geolocation=(self), notifications=(self), payment=(), usb=(), interest-cohort=()',
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Cross-Origin-Resource-Policy': 'same-origin',
     'X-DNS-Prefetch-Control': 'on'
