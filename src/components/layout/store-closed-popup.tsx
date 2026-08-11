@@ -113,14 +113,11 @@ export function StoreClosedPopup() {
         <Dialog.Overlay className="fixed inset-0 z-[1200] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <Dialog.Content
           className={cn(
-            'fixed z-[1200] w-full overflow-hidden bg-[#1a1212] text-white shadow-2xl focus:outline-none',
-            // Mobile: bottom sheet under header/banner
-            'inset-x-0 bottom-0 max-h-[min(85dvh,640px)] rounded-t-[1.75rem]',
-            // Tablet/desktop: lower center (not mid-screen under header)
-            'sm:inset-x-auto sm:left-1/2 sm:right-auto sm:top-auto',
-            'sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))]',
-            'sm:w-[min(420px,calc(100vw-2rem))] sm:max-h-[min(78dvh,620px)]',
-            'sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-[1.75rem]'
+            'fixed z-[1200] overflow-hidden bg-[#1a1212] text-white shadow-2xl focus:outline-none',
+            // True center on all breakpoints
+            'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+            'w-[min(420px,calc(100vw-1.5rem))] max-h-[min(86dvh,640px)]',
+            'rounded-[1.5rem] sm:rounded-[1.75rem]'
           )}
         >
           <div
@@ -131,9 +128,7 @@ export function StoreClosedPopup() {
             }}
           />
 
-          <div className="relative max-h-[inherit] overflow-y-auto overscroll-contain px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-5">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" />
-
+          <div className="relative max-h-[inherit] overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
             <div className="flex flex-col items-center text-center">
               <Image
                 src="/images/breadline-logo.png"
