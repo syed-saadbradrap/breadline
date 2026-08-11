@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useFulfillmentStore } from '@/store/fulfillment-store'
 import type { OrderType } from '@/types/order'
 import { siteInfo } from '@/data/site'
+import { isStoreOpen } from '@/lib/hours'
 import { cn } from '@/lib/utils'
 
 const PRELOADER_KEY = 'bl-preloader-seen'
@@ -17,11 +18,21 @@ export function OrderTypePopup() {
   const hasChosen = useFulfillmentStore((s) => s.hasChosen)
   const orderType = useFulfillmentStore((s) => s.orderType)
   const pickerOpen = useFulfillmentStore((s) => s.pickerOpen)
+  const scheduleForOpen = useFulfillmentStore((s) => s.scheduleForOpen)
+  const scheduleLabel = useFulfillmentStore((s) => s.scheduleLabel)
   const setOrderType = useFulfillmentStore((s) => s.setOrderType)
   const openPicker = useFulfillmentStore((s) => s.openPicker)
   const closePicker = useFulfillmentStore((s) => s.closePicker)
   const [ready, setReady] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [storeClosed, setStoreClosed] = useState(false)
+
+  useEffect(() => {
+    const tick = () => setStoreClosed(!isStoreOpen())
+    tick()
+    const id = window.setInterval(tick, 60_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const finish = () => setHydrated(true)
@@ -55,19 +66,27 @@ export function OrderTypePopup() {
 
   useEffect(() => {
     if (!hydrated || !ready) return
+    // While kitchen is closed, wait for schedule mode (closed popup) before order-type picker
+    if (storeClosed && !scheduleForOpen) return
     if (!hasChosen) openPicker()
-  }, [hydrated, ready, hasChosen, openPicker])
+  }, [hydrated, ready, hasChosen, openPicker, storeClosed, scheduleForOpen])
 
-  const open = hydrated && ready && (pickerOpen || !hasChosen)
+  const open =
+    hydrated &&
+    ready &&
+    (!storeClosed || scheduleForOpen) &&
+    (pickerOpen || !hasChosen)
 
   if (pathname.startsWith('/rider')) return null
 
   const choose = (type: OrderType) => {
     setOrderType(type)
     toast.success(
-      type === 'delivery'
-        ? 'Delivery selected — we’ll bring it to you'
-        : 'Takeaway selected — pick up at Breadline'
+      scheduleForOpen
+        ? `${type === 'delivery' ? 'Delivery' : 'Takeaway'} scheduled · ${scheduleLabel || 'next open'}`
+        : type === 'delivery'
+          ? 'Delivery selected — we’ll bring it to you'
+          : 'Takeaway selected — pick up at Breadline'
     )
   }
 
@@ -96,7 +115,9 @@ export function OrderTypePopup() {
             How do you want it?
           </Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-ink/60">
-            Choose delivery or takeaway before you start ordering.
+            {scheduleForOpen
+              ? `Schedule for ${scheduleLabel || 'next open'} — choose delivery or takeaway.`
+              : 'Choose delivery or takeaway before you start ordering.'}
           </Dialog.Description>
 
           <div className="mt-5 grid gap-3">

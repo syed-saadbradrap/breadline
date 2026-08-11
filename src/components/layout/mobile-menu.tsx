@@ -25,8 +25,8 @@ export function MobileMenu({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-[min(360px,92vw)] flex-col bg-white p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] shadow-2xl focus:outline-none sm:p-6 md:hidden">
+        <Dialog.Overlay className="fixed inset-0 z-[1200] bg-black/40 md:hidden" />
+        <Dialog.Content className="fixed inset-y-0 right-0 z-[1200] flex w-[min(360px,92vw)] flex-col bg-white p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] shadow-2xl focus:outline-none sm:p-6 md:hidden">
           <div className="mb-6 flex items-center justify-between sm:mb-8">
             <Dialog.Title className="font-display text-2xl tracking-[0.04em]">
               <span className="text-ink">BREAD</span>

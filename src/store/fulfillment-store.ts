@@ -8,9 +8,14 @@ interface FulfillmentState {
   orderType: OrderType
   hasChosen: boolean
   pickerOpen: boolean
+  /** When kitchen is closed, customer chose to schedule for next open. */
+  scheduleForOpen: boolean
+  scheduleLabel: string | null
   setOrderType: (type: OrderType) => void
   openPicker: () => void
   closePicker: () => void
+  enableScheduleForOpen: (label: string) => void
+  clearScheduleForOpen: () => void
 }
 
 export const useFulfillmentStore = create<FulfillmentState>()(
@@ -19,6 +24,8 @@ export const useFulfillmentStore = create<FulfillmentState>()(
       orderType: 'delivery',
       hasChosen: false,
       pickerOpen: false,
+      scheduleForOpen: false,
+      scheduleLabel: null,
       setOrderType: (type) =>
         set({
           orderType: type,
@@ -30,13 +37,25 @@ export const useFulfillmentStore = create<FulfillmentState>()(
         set((s) => ({
           // Only allow closing if they already chose once
           pickerOpen: s.hasChosen ? false : s.pickerOpen
-        }))
+        })),
+      enableScheduleForOpen: (label) =>
+        set({
+          scheduleForOpen: true,
+          scheduleLabel: label
+        }),
+      clearScheduleForOpen: () =>
+        set({
+          scheduleForOpen: false,
+          scheduleLabel: null
+        })
     }),
     {
       name: 'breadline-fulfillment',
       partialize: (s) => ({
         orderType: s.orderType,
-        hasChosen: s.hasChosen
+        hasChosen: s.hasChosen,
+        scheduleForOpen: s.scheduleForOpen,
+        scheduleLabel: s.scheduleLabel
       })
     }
   )

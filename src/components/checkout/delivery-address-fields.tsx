@@ -79,6 +79,17 @@ export function DeliveryAddressFields({
     void detectLocation(true)
   }, [detectLocation])
 
+  // Keep typed field in sync when pin / GPS fills address from outside
+  useEffect(() => {
+    if (values.address && values.address !== query) {
+      const active = document.activeElement as HTMLElement | null
+      if (active?.id === 'address') return
+      skipNextSearch.current = true
+      setQuery(values.address)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to external address changes
+  }, [values.address])
+
   useEffect(() => {
     if (skipNextSearch.current) {
       skipNextSearch.current = false
@@ -93,12 +104,15 @@ export function DeliveryAddressFields({
       startSearch(async () => {
         try {
           const res = await fetch(`/api/geo/search?q=${encodeURIComponent(query.trim())}`)
-          if (!res.ok) return
+          if (!res.ok) {
+            setSuggestions([])
+            return
+          }
           const data = (await res.json()) as GeoSuggestion[]
           setSuggestions(Array.isArray(data) ? data : [])
           setOpen(true)
         } catch {
-          // ignore
+          setSuggestions([])
         }
       })
     }, 350)

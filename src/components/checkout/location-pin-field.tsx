@@ -50,12 +50,15 @@ export function LocationPinField({
       const res = await fetch(
         `/api/geo/reverse?lat=${coords.lat}&lng=${coords.lng}&source=${opts.source || 'gps'}`
       )
-      if (!res.ok) return
+      if (!res.ok) {
+        toast.message('Pin saved — type your street/area in Address if needed')
+        return
+      }
       const loc = (await res.json()) as ResolvedLocation
       onChange(loc.mapsUrl)
       onResolved?.(loc)
     } catch {
-      // pin URL already set
+      toast.message('Pin saved — type your street/area in Address if needed')
     } finally {
       setMapBusy(false)
     }
@@ -109,8 +112,8 @@ export function LocationPinField({
       <MapPinPicker
         value={value}
         onPick={(coords) => {
-          void applyCoords(coords).then(() => {
-            toast.success('Delivery pin updated')
+          void applyCoords(coords, { fillAddress: true, source: 'gps' }).then(() => {
+            toast.success('Pin + address updated')
           })
         }}
         className="mb-3"
@@ -132,7 +135,7 @@ export function LocationPinField({
       </div>
       {error && <p className="mt-1 text-xs text-brand">{error}</p>}
       <p className="mt-1.5 text-xs text-ink/45">
-        Use the map for your exact house pin — drag the red marker or tap the street.
+        Tap or drag the red pin — we’ll fill the address from that spot automatically.
       </p>
       {value && (
         <a

@@ -1,3 +1,5 @@
+import { HOURS_LABEL } from '@/lib/hours'
+
 const addressQuery = encodeURIComponent('Sector 9, North Karachi, Karachi, Pakistan')
 
 export const siteInfo = {
@@ -9,7 +11,7 @@ export const siteInfo = {
   phoneHref: 'tel:+923424511939',
   email: 'contact@breadline.com',
   emailHref: 'mailto:contact@breadline.com',
-  hours: 'Daily 4:00 PM – 4:00 AM',
+  hours: HOURS_LABEL,
   city: 'Karachi',
   area: 'North Karachi',
   country: 'PK',

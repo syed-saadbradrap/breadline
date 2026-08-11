@@ -111,12 +111,12 @@ export function MapPinPicker({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-ink/10 bg-muted shadow-sm',
+        'relative isolate z-0 overflow-hidden rounded-2xl border border-ink/10 bg-muted shadow-sm',
         className
       )}
     >
-      <div ref={containerRef} className="h-[240px] w-full sm:h-[280px]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-8">
+      <div ref={containerRef} className="relative z-0 h-[240px] w-full sm:h-[280px]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-8">
         <p className="text-center text-[11px] font-semibold text-white/95 sm:text-xs">
           Tap map or drag the red pin to set exact delivery location
         </p>

@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     url.searchParams.set('addressdetails', '1')
     url.searchParams.set('zoom', '18')
     url.searchParams.set('accept-language', 'en')
+    // Prefer building/road level when available
+    url.searchParams.set('layer', 'address')
 
     const res = await fetch(url.toString(), {
       headers: {

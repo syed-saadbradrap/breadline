@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { DeliveryAddressFields } from '@/components/checkout/delivery-address-fields'
 import { LocationMap } from '@/components/ui/location-map'
 import { calcDeliveryFee, calcTax } from '@/lib/pricing'
+import { HOURS_LABEL, isStoreOpen, nextOpenAtIso, nextOpenFriendly } from '@/lib/hours'
 import { createOrderNumber } from '@/lib/utils'
 import type { Order } from '@/types/order'
 
@@ -28,6 +29,24 @@ export default function CheckoutPage() {
   const clear = useCartStore((s) => s.clear)
   const addOrder = useOrderStore((s) => s.addOrder)
   const preferredType = useFulfillmentStore((s) => s.orderType)
+  const scheduleForOpen = useFulfillmentStore((s) => s.scheduleForOpen)
+  const scheduleLabel = useFulfillmentStore((s) => s.scheduleLabel)
+  const enableScheduleForOpen = useFulfillmentStore((s) => s.enableScheduleForOpen)
+  const clearScheduleForOpen = useFulfillmentStore((s) => s.clearScheduleForOpen)
+  const [storeOpen, setStoreOpen] = useState(true)
+
+  useEffect(() => {
+    const tick = () => {
+      const open = isStoreOpen()
+      setStoreOpen(open)
+      if (open) clearScheduleForOpen()
+    }
+    tick()
+    const id = window.setInterval(tick, 60_000)
+    return () => window.clearInterval(id)
+  }, [clearScheduleForOpen])
+
+  const canOrder = storeOpen || scheduleForOpen
   const setFulfillment = useFulfillmentStore((s) => s.setOrderType)
 
   const form = useForm<CheckoutInput>({
@@ -61,8 +80,16 @@ export default function CheckoutPage() {
   }
 
   const onSubmit = async (data: CheckoutInput) => {
+    const openNow = isStoreOpen()
+    setStoreOpen(openNow)
+    if (!openNow && !scheduleForOpen) {
+      toast.error(`We’re closed right now. Schedule for open, or order during ${HOURS_LABEL}.`)
+      return
+    }
+
     const deliveryFee = calcDeliveryFee(subtotal, data.orderType)
     const tax = calcTax(subtotal)
+    const scheduledFor = !openNow ? nextOpenAtIso() : undefined
     const order: Order = {
       id: crypto.randomUUID(),
       orderNumber: createOrderNumber(),
@@ -91,7 +118,8 @@ export default function CheckoutPage() {
       tax,
       discount: 0,
       total: subtotal + deliveryFee + tax,
-      estimatedMinutes: data.orderType === 'delivery' ? 40 : 25
+      estimatedMinutes: data.orderType === 'delivery' ? 40 : 25,
+      ...(scheduledFor ? { scheduledFor } : {})
     }
 
     try {
@@ -100,19 +128,33 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
       })
+      const payload = (await res.json().catch(() => null)) as {
+        error?: string
+        emailSent?: boolean
+        emailReason?: string
+      } | null
       if (!res.ok) {
-        const err = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(err?.error || 'Could not send order to restaurant')
+        throw new Error(payload?.error || 'Could not send order to restaurant')
       }
+      addOrder(order)
+      clear()
+      if (scheduledFor) {
+        toast.success(`Scheduled — kitchen will prep ${scheduleLabel || nextOpenFriendly()}`)
+      } else {
+        toast.success('Order placed — sent to Breadline POS')
+      }
+      if (order.email && payload?.emailSent === false) {
+        toast.warning(
+          'Order placed, but confirmation email could not be sent. Please check your inbox later or call the restaurant.',
+          { duration: 7000 }
+        )
+      } else if (order.email && payload?.emailSent) {
+        toast.message(`Confirmation sent to ${order.email}`)
+      }
+      router.push(`/order-confirmation?id=${order.id}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not place order')
-      return
     }
-
-    addOrder(order)
-    clear()
-    toast.success('Order placed — sent to Breadline POS')
-    router.push(`/order-confirmation?id=${order.id}`)
   }
 
   return (
@@ -126,6 +168,38 @@ export default function CheckoutPage() {
             Almost there — tell us where to send your feast.
           </p>
         </div>
+
+        {!storeOpen ? (
+          <div className="rounded-2xl border border-brand/20 bg-brand-soft px-4 py-3 text-sm text-brand-dark">
+            {scheduleForOpen ? (
+              <>
+                <p className="font-bold">Scheduled order</p>
+                <p className="mt-1 text-brand-dark/80">
+                  Kitchen is closed now — your order will be prepared{' '}
+                  {scheduleLabel || nextOpenFriendly()}.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-bold">We’re closed right now.</p>
+                <p className="mt-1 text-brand-dark/80">
+                  Online ordering is available {HOURS_LABEL}. Or schedule for{' '}
+                  {nextOpenFriendly()}.
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 text-sm font-bold underline underline-offset-2"
+                  onClick={() => {
+                    enableScheduleForOpen(nextOpenFriendly())
+                    toast.success(`Schedule mode on — ${nextOpenFriendly()}`)
+                  }}
+                >
+                  Schedule for {nextOpenFriendly()}
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
 
         <section className="rounded-2xl border border-ink/5 bg-white p-4 sm:rounded-3xl sm:p-5">
           <h2 className="font-display text-xl tracking-[0.04em]">Customer information</h2>
@@ -245,9 +319,17 @@ export default function CheckoutPage() {
           type="submit"
           size="lg"
           className="w-full lg:w-auto"
-          disabled={form.formState.isSubmitting}
+          disabled={form.formState.isSubmitting || !canOrder}
         >
-          {form.formState.isSubmitting ? 'Placing order…' : 'Place Order'}
+          {!canOrder
+            ? 'Closed — schedule or come back at 4:00 PM'
+            : form.formState.isSubmitting
+              ? scheduleForOpen
+                ? 'Scheduling…'
+                : 'Placing order…'
+              : scheduleForOpen
+                ? `Schedule for ${scheduleLabel || 'open'}`
+                : 'Place Order'}
         </Button>
       </form>
 

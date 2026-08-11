@@ -30,8 +30,8 @@ export function CartDrawer({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl focus:outline-none sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(420px,100vw)] sm:rounded-none">
+        <Dialog.Overlay className="fixed inset-0 z-[1200] bg-black/40" />
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[1200] flex max-h-[88dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl focus:outline-none sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(420px,100vw)] sm:rounded-none">
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-ink/15 sm:hidden" />
           <div className="flex items-center justify-between border-b border-ink/10 px-4 py-3 sm:px-5 sm:py-4">
             <Dialog.Title className="font-display text-xl tracking-[0.03em] sm:text-2xl">

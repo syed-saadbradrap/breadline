@@ -1,9 +1,11 @@
 import type {
+  KitchenProgressStatus,
   OnlineOrderPayload,
   OnlineOrderRecord,
   OnlineOrderStatus,
   RiderDeliveryStatus
 } from './types'
+import type { OrderStatus } from '@/types/order'
 
 type MemoryStore = {
   orders: OnlineOrderRecord[]
@@ -83,6 +85,78 @@ export async function createOnlineOrder(payload: OnlineOrderPayload): Promise<On
   }
 
   return record
+}
+
+export async function getOnlineOrderByLookup(lookup: string): Promise<OnlineOrderRecord | null> {
+  const q = lookup.trim()
+  if (!q) return null
+
+  if (!hasSupabase()) {
+    const all = memory().orders
+    return (
+      all.find(
+        (o) =>
+          o.id === q ||
+          o.orderNumber.toLowerCase() === q.toLowerCase() ||
+          o.posOrderNumber?.toLowerCase() === q.toLowerCase()
+      ) || null
+    )
+  }
+
+  const base = `${process.env.SUPABASE_URL}/rest/v1/online_orders`
+  const headers = supabaseHeaders()
+
+  // UUID / exact id
+  if (/^[0-9a-f-]{36}$/i.test(q)) {
+    const byId = await fetch(`${base}?id=eq.${encodeURIComponent(q)}&select=*`, {
+      headers,
+      cache: 'no-store'
+    })
+    if (byId.ok) {
+      const rows = (await byId.json()) as Record<string, unknown>[]
+      if (rows[0]) return rowToRecord(rows[0])
+    }
+  }
+
+  const byNumber = await fetch(
+    `${base}?order_number=eq.${encodeURIComponent(q)}&select=*&limit=1`,
+    { headers, cache: 'no-store' }
+  )
+  if (byNumber.ok) {
+    const rows = (await byNumber.json()) as Record<string, unknown>[]
+    if (rows[0]) return rowToRecord(rows[0])
+  }
+
+  const byPos = await fetch(
+    `${base}?pos_order_number=eq.${encodeURIComponent(q)}&select=*&limit=1`,
+    { headers, cache: 'no-store' }
+  )
+  if (byPos.ok) {
+    const rows = (await byPos.json()) as Record<string, unknown>[]
+    if (rows[0]) return rowToRecord(rows[0])
+  }
+
+  return null
+}
+
+/** Map online order + kitchen/rider progress → customer timeline status. */
+export function toCustomerTrackStatus(order: OnlineOrderRecord): OrderStatus | 'cancelled' {
+  if (order.status === 'rejected' || order.status === 'cancelled') return 'cancelled'
+
+  if (order.type === 'delivery') {
+    if (order.riderStatus === 'delivered') return 'delivered'
+    if (order.riderStatus === 'out_for_delivery') return 'out_for_delivery'
+    if (order.riderStatus === 'ready' || order.kitchenStatus === 'READY') return 'ready'
+    if (order.kitchenStatus === 'PREPARING') return 'preparing'
+    if (order.status === 'accepted') return 'confirmed'
+    return 'received'
+  }
+
+  if (order.kitchenStatus === 'COMPLETED') return 'completed'
+  if (order.kitchenStatus === 'READY' || order.riderStatus === 'ready') return 'ready'
+  if (order.kitchenStatus === 'PREPARING') return 'preparing'
+  if (order.status === 'accepted') return 'confirmed'
+  return 'received'
 }
 
 export async function listOnlineOrders(status?: OnlineOrderStatus): Promise<OnlineOrderRecord[]> {
@@ -201,32 +275,27 @@ export async function listRiderOrders(opts?: {
   return [...active, ...delivered]
 }
 
-export async function updateRiderStatus(
+async function patchOrderPayload(
   id: string,
-  riderStatus: RiderDeliveryStatus
+  mutate: (current: OnlineOrderRecord) => OnlineOrderPayload
 ): Promise<OnlineOrderRecord | null> {
   if (!hasSupabase()) {
     const store = memory()
     const idx = store.orders.findIndex((o) => o.id === id)
     if (idx < 0) return null
     const now = new Date().toISOString()
-    const previous = store.orders[idx].riderStatus
+    const {
+      status: _s,
+      updatedAt: _u,
+      posOrderNumber: _n,
+      posOrderId: _i,
+      ...base
+    } = store.orders[idx]
+    const payload = mutate(store.orders[idx])
     store.orders[idx] = {
       ...store.orders[idx],
-      riderStatus,
-      riderUpdatedAt: now,
+      ...payload,
       updatedAt: now
-    }
-    if (riderStatus === 'ready' && previous !== 'ready') {
-      void import('@/lib/rider-push/send')
-        .then(({ notifyRidersFoodReady }) =>
-          notifyRidersFoodReady({
-            id: store.orders[idx].id,
-            orderNumber: store.orders[idx].orderNumber,
-            customerName: store.orders[idx].customerName
-          })
-        )
-        .catch((err) => console.error('Rider push notify failed', err))
     }
     return store.orders[idx]
   }
@@ -243,26 +312,8 @@ export async function updateRiderStatus(
   if (!rows[0]) return null
 
   const current = rowToRecord(rows[0])
-  if (current.type !== 'delivery' || current.status !== 'accepted') {
-    const err = new Error('Order is not available for rider update')
-    ;(err as Error & { status: number }).status = 400
-    throw err
-  }
-
-  const previousStatus = current.riderStatus
   const now = new Date().toISOString()
-  const {
-    status: _status,
-    updatedAt: _updatedAt,
-    posOrderNumber: _posOrderNumber,
-    posOrderId: _posOrderId,
-    ...payloadBase
-  } = current
-  const payload: OnlineOrderPayload = {
-    ...payloadBase,
-    riderStatus,
-    riderUpdatedAt: now
-  }
+  const payload = mutate(current)
 
   const patchUrl = `${process.env.SUPABASE_URL}/rest/v1/online_orders?id=eq.${encodeURIComponent(id)}`
   const res = await fetch(patchUrl, {
@@ -275,10 +326,86 @@ export async function updateRiderStatus(
   })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Failed to update rider status: ${text}`)
+    throw new Error(`Failed to update order: ${text}`)
   }
   const updated = (await res.json()) as Record<string, unknown>[]
-  const record = updated[0] ? rowToRecord(updated[0]) : null
+  return updated[0] ? rowToRecord(updated[0]) : null
+}
+
+export async function updateKitchenProgress(
+  id: string,
+  kitchenStatus: KitchenProgressStatus
+): Promise<OnlineOrderRecord | null> {
+  let previousRider: RiderDeliveryStatus | undefined
+  const record = await patchOrderPayload(id, (current) => {
+    previousRider = current.riderStatus
+    const {
+      status: _status,
+      updatedAt: _updatedAt,
+      posOrderNumber: _posOrderNumber,
+      posOrderId: _posOrderId,
+      ...payloadBase
+    } = current
+    const now = new Date().toISOString()
+    const next: OnlineOrderPayload = {
+      ...payloadBase,
+      kitchenStatus,
+      kitchenUpdatedAt: now
+    }
+    if (current.type === 'delivery' && kitchenStatus === 'READY') {
+      next.riderStatus = current.riderStatus === 'delivered' ? 'delivered' : 'ready'
+      next.riderUpdatedAt = now
+    }
+    return next
+  })
+
+  if (
+    record &&
+    record.type === 'delivery' &&
+    kitchenStatus === 'READY' &&
+    previousRider !== 'ready' &&
+    previousRider !== 'out_for_delivery' &&
+    previousRider !== 'delivered'
+  ) {
+    void import('@/lib/rider-push/send')
+      .then(({ notifyRidersFoodReady }) =>
+        notifyRidersFoodReady({
+          id: record.id,
+          orderNumber: record.orderNumber,
+          customerName: record.customerName
+        })
+      )
+      .catch((err) => console.error('Rider push notify failed', err))
+  }
+
+  return record
+}
+
+export async function updateRiderStatus(
+  id: string,
+  riderStatus: RiderDeliveryStatus
+): Promise<OnlineOrderRecord | null> {
+  let previousStatus: RiderDeliveryStatus | undefined
+  const record = await patchOrderPayload(id, (current) => {
+    previousStatus = current.riderStatus
+    if (current.type !== 'delivery' || current.status !== 'accepted') {
+      const err = new Error('Order is not available for rider update')
+      ;(err as Error & { status: number }).status = 400
+      throw err
+    }
+    const {
+      status: _status,
+      updatedAt: _updatedAt,
+      posOrderNumber: _posOrderNumber,
+      posOrderId: _posOrderId,
+      ...payloadBase
+    } = current
+    return {
+      ...payloadBase,
+      riderStatus,
+      riderUpdatedAt: new Date().toISOString()
+    }
+  })
 
   if (record && riderStatus === 'ready' && previousStatus !== 'ready') {
     void import('@/lib/rider-push/send')

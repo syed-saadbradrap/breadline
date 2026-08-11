@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
   assertPosKey,
+  updateKitchenProgress,
   updateOnlineOrder,
   updateRiderStatus
 } from '@/lib/online-orders/store'
@@ -12,11 +13,12 @@ const patchSchema = z
   .object({
     status: z.enum(['pending', 'accepted', 'rejected', 'cancelled']).optional(),
     riderStatus: z.enum(['ready', 'out_for_delivery', 'delivered']).optional(),
+    kitchenStatus: z.enum(['NEW', 'PREPARING', 'READY', 'COMPLETED']).optional(),
     posOrderNumber: z.string().max(40).optional(),
     posOrderId: z.number().int().optional()
   })
-  .refine((d) => Boolean(d.status || d.riderStatus), {
-    message: 'status or riderStatus required'
+  .refine((d) => Boolean(d.status || d.riderStatus || d.kitchenStatus), {
+    message: 'status, riderStatus, or kitchenStatus required'
   })
 
 export async function PATCH(
@@ -40,6 +42,13 @@ export async function PATCH(
         posOrderNumber: parsed.data.posOrderNumber,
         posOrderId: parsed.data.posOrderId
       })
+      if (!order) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      }
+    }
+
+    if (parsed.data.kitchenStatus) {
+      order = await updateKitchenProgress(id, parsed.data.kitchenStatus)
       if (!order) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }

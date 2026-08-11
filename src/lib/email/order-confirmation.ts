@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer'
 import { siteInfo } from '@/data/site'
 import { formatMoney } from '@/lib/utils'
 import type { OnlineOrderPayload } from '@/lib/online-orders/types'
@@ -203,9 +204,7 @@ export function buildOrderConfirmationText(order: OnlineOrderPayload) {
     `Type: ${order.type}`,
     `Estimated: ~${order.estimatedMinutes} mins`,
     ``,
-    ...order.items.map(
-      (i) => `${i.quantity}x ${i.name} — ${money(i.lineTotal)}`
-    ),
+    ...order.items.map((i) => `${i.quantity}x ${i.name} — ${money(i.lineTotal)}`),
     ``,
     `Subtotal: ${money(order.subtotal)}`,
     `Delivery: ${money(order.deliveryFee)}`,
@@ -218,23 +217,65 @@ export function buildOrderConfirmationText(order: OnlineOrderPayload) {
   return lines.join('\n')
 }
 
-export async function sendOrderConfirmationEmail(order: OnlineOrderPayload) {
+type SendResult =
+  | { sent: true; id?: string; via: 'smtp' | 'resend' }
+  | { sent: false; reason: string; detail?: string }
+
+function fromAddress() {
+  return process.env.EMAIL_FROM?.trim() || 'Breadline <onboarding@resend.dev>'
+}
+
+function smtpConfigured() {
+  return Boolean(
+    process.env.SMTP_HOST?.trim() &&
+      process.env.SMTP_USER?.trim() &&
+      process.env.SMTP_PASS?.trim()
+  )
+}
+
+async function sendViaSmtp(opts: {
+  to: string
+  subject: string
+  html: string
+  text: string
+  replyTo?: string
+}): Promise<SendResult> {
+  const host = process.env.SMTP_HOST!.trim()
+  const port = Number(process.env.SMTP_PORT || 465)
+  const user = process.env.SMTP_USER!.trim()
+  const pass = process.env.SMTP_PASS!.trim()
+  const secure = process.env.SMTP_SECURE !== 'false' && port === 465
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass }
+  })
+
+  const info = await transporter.sendMail({
+    from: fromAddress(),
+    to: opts.to,
+    replyTo: opts.replyTo || siteInfo.email,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text
+  })
+
+  return { sent: true, id: info.messageId, via: 'smtp' }
+}
+
+async function sendViaResend(opts: {
+  to: string
+  subject: string
+  html: string
+  text: string
+  replyTo?: string
+}): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY
-  const to = order.email?.trim()
-  if (!to) {
-    return { sent: false as const, reason: 'missing_email' }
-  }
   if (!apiKey) {
-    console.warn('[email] RESEND_API_KEY missing — confirmation not sent')
-    return { sent: false as const, reason: 'missing_api_key' }
+    return { sent: false, reason: 'missing_api_key' }
   }
-
-  const from =
-    process.env.EMAIL_FROM?.trim() || 'Breadline <onboarding@resend.dev>'
-  const notify = process.env.ORDER_NOTIFY_EMAIL?.trim() || siteInfo.email
-
-  const html = buildOrderConfirmationHtml(order)
-  const text = buildOrderConfirmationText(order)
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -243,22 +284,92 @@ export async function sendOrderConfirmationEmail(order: OnlineOrderPayload) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from,
-      to: [to],
-      bcc: notify && notify !== to ? [notify] : undefined,
-      reply_to: siteInfo.email,
-      subject: `Order confirmed · ${order.orderNumber} · Breadline`,
-      html,
-      text
+      from: fromAddress(),
+      to: [opts.to],
+      reply_to: opts.replyTo || siteInfo.email,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text
     })
   })
 
   if (!res.ok) {
     const errText = await res.text()
     console.error('[email] Resend failed:', errText)
-    return { sent: false as const, reason: 'provider_error', detail: errText }
+    return { sent: false, reason: 'provider_error', detail: errText }
   }
 
   const data = (await res.json()) as { id?: string }
-  return { sent: true as const, id: data.id }
+  return { sent: true, id: data.id, via: 'resend' }
+}
+
+async function deliverEmail(opts: {
+  to: string
+  subject: string
+  html: string
+  text: string
+}): Promise<SendResult> {
+  // SMTP (e.g. Gmail) can send to any customer inbox without a verified domain.
+  if (smtpConfigured()) {
+    try {
+      return await sendViaSmtp(opts)
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      console.error('[email] SMTP failed:', detail)
+      // Fall through to Resend if configured
+      if (!process.env.RESEND_API_KEY) {
+        return { sent: false, reason: 'smtp_error', detail }
+      }
+    }
+  }
+
+  return sendViaResend(opts)
+}
+
+export async function sendOrderConfirmationEmail(order: OnlineOrderPayload) {
+  const to = order.email?.trim().toLowerCase()
+  if (!to) {
+    return { sent: false as const, reason: 'missing_email' }
+  }
+
+  if (!smtpConfigured() && !process.env.RESEND_API_KEY) {
+    console.warn('[email] No SMTP or RESEND_API_KEY — confirmation not sent')
+    return { sent: false as const, reason: 'missing_api_key' }
+  }
+
+  const html = buildOrderConfirmationHtml(order)
+  const text = buildOrderConfirmationText(order)
+  const subject = `Order confirmed · ${order.orderNumber} · Breadline`
+
+  const customer = await deliverEmail({ to, subject, html, text })
+
+  const notify = (process.env.ORDER_NOTIFY_EMAIL?.trim() || siteInfo.email || '').toLowerCase()
+  if (notify && notify !== to) {
+    const staffHtml = html.replace('Order confirmed', 'New online order')
+    const staffSubject = `New order · ${order.orderNumber} · ${order.customerName}`
+    const staff = await deliverEmail({
+      to: notify,
+      subject: staffSubject,
+      html: staffHtml,
+      text: `New online order\n\n${text}`
+    }).catch((err) => {
+      console.error('[email] notify copy failed', err)
+      return { sent: false as const, reason: 'notify_failed' }
+    })
+    if (!staff.sent) {
+      console.warn('[email] restaurant notify not sent', staff)
+    }
+  }
+
+  if (!customer.sent) {
+    // Resend sandbox can only mail the account owner until a domain is verified.
+    if (customer.detail?.includes('verify a domain')) {
+      console.error(
+        '[email] Resend blocked customer send. Verify breadline.com at resend.com/domains OR set SMTP_HOST/SMTP_USER/SMTP_PASS (Gmail app password).'
+      )
+    }
+    return customer
+  }
+
+  return customer
 }

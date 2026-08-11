@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createOnlineOrder } from '@/lib/online-orders/store'
 import type { OnlineOrderPayload } from '@/lib/online-orders/types'
 import { sendOrderConfirmationEmail } from '@/lib/email/order-confirmation'
+import { HOURS_LABEL, isStoreOpen, nextOpenAtIso } from '@/lib/hours'
 import { sanitizeText } from '@/lib/sanitize'
 
 export const runtime = 'nodejs'
@@ -36,7 +37,8 @@ const orderSchema = z.object({
   tax: z.number().min(0),
   discount: z.number().min(0),
   total: z.number().min(0),
-  estimatedMinutes: z.number().int().min(5).max(180)
+  estimatedMinutes: z.number().int().min(5).max(180),
+  scheduledFor: z.string().min(10).max(40).optional()
 })
 
 export async function POST(request: Request) {
@@ -51,6 +53,32 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data
+    const storeOpen = isStoreOpen()
+    const wantsSchedule = Boolean(data.scheduledFor)
+
+    if (!storeOpen && !wantsSchedule) {
+      return NextResponse.json(
+        {
+          error: `Breadline is closed right now. Schedule for open, or order during ${HOURS_LABEL} (Karachi time).`
+        },
+        { status: 403 }
+      )
+    }
+
+    const scheduledFor =
+      !storeOpen && wantsSchedule ? data.scheduledFor || nextOpenAtIso() : undefined
+
+    const scheduleNote = scheduledFor
+      ? `SCHEDULED for ${new Date(scheduledFor).toLocaleString('en-PK', {
+          timeZone: 'Asia/Karachi',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          day: 'numeric',
+          month: 'short'
+        })}`
+      : ''
+
     const payload: OnlineOrderPayload = {
       ...data,
       customerName: sanitizeText(data.customerName, 80),
@@ -59,8 +87,12 @@ export async function POST(request: Request) {
       address: data.address ? sanitizeText(data.address, 240) : undefined,
       city: data.city ? sanitizeText(data.city, 80) : undefined,
       postalCode: data.postalCode ? sanitizeText(data.postalCode, 20) : undefined,
-      instructions: data.instructions ? sanitizeText(data.instructions, 300) : undefined,
+      instructions: [data.instructions ? sanitizeText(data.instructions, 300) : '', scheduleNote]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 300) || undefined,
       locationPin: data.locationPin ? sanitizeText(data.locationPin, 500) : undefined,
+      scheduledFor,
       items: data.items.map((item) => ({
         ...item,
         name: sanitizeText(item.name, 120),
@@ -78,7 +110,14 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(
-      { ok: true, order: saved, emailSent: emailResult.sent },
+      {
+        ok: true,
+        order: saved,
+        emailSent: emailResult.sent,
+        emailReason: emailResult.sent ? undefined : emailResult.reason,
+        emailDetail:
+          !emailResult.sent && 'detail' in emailResult ? emailResult.detail : undefined
+      },
       { status: 201 }
     )
   } catch (error) {

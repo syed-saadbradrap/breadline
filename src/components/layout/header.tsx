@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bike, Menu, Search, ShoppingBag, Store, User } from 'lucide-react'
+import { Bike, CalendarClock, Clock, Menu, Search, ShoppingBag, Store, User } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/cart-store'
 import { useFulfillmentStore } from '@/store/fulfillment-store'
+import { HOURS_LABEL, nextOpenFriendly, storeStatus } from '@/lib/hours'
 import { MobileMenu } from './mobile-menu'
 import { SearchModal } from './search-modal'
 import { CartDrawer } from '@/components/cart/cart-drawer'
@@ -26,10 +28,17 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [storeClosed, setStoreClosed] = useState(false)
+  const [openLabel, setOpenLabel] = useState('today at 4:00 PM')
+  const [headerHeight, setHeaderHeight] = useState(0)
+  const headerRef = useRef<HTMLElement>(null)
   const count = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0))
   const orderType = useFulfillmentStore((s) => s.orderType)
   const hasChosen = useFulfillmentStore((s) => s.hasChosen)
   const openPicker = useFulfillmentStore((s) => s.openPicker)
+  const scheduleForOpen = useFulfillmentStore((s) => s.scheduleForOpen)
+  const scheduleLabel = useFulfillmentStore((s) => s.scheduleLabel)
+  const enableScheduleForOpen = useFulfillmentStore((s) => s.enableScheduleForOpen)
   const onHome = pathname === '/'
 
   useEffect(() => {
@@ -39,20 +48,89 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => {
+    const tick = () => {
+      const status = storeStatus()
+      setStoreClosed(!status.open)
+      setOpenLabel(status.nextOpenLabel)
+    }
+    tick()
+    const id = window.setInterval(tick, 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const measure = () => setHeaderHeight(el.getBoundingClientRect().height)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [storeClosed, scheduleForOpen, pathname])
+
   if (pathname.startsWith('/rider')) return null
 
-  const transparent = onHome && !scrolled
+  const transparent = onHome && !scrolled && !storeClosed
+  const showSpacer = !onHome || storeClosed
 
   return (
     <>
       <header
+        ref={headerRef}
         className={cn(
-          'fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-all duration-300',
+          // Above Leaflet map panes (they use high z-index)
+          'fixed inset-x-0 top-0 z-[1100] pt-[env(safe-area-inset-top)] transition-all duration-300',
           transparent
             ? 'border-transparent bg-transparent text-white'
             : 'border-b border-ink/8 bg-white/92 text-ink shadow-[0_8px_30px_rgba(20,20,20,0.06)] backdrop-blur-md'
         )}
       >
+        {storeClosed ? (
+          <div
+            role="status"
+            className="border-b border-white/10 bg-ink text-white"
+          >
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-3 py-2 text-center text-xs sm:px-6 sm:text-sm">
+              {scheduleForOpen ? (
+                <>
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0 text-brand sm:h-4 sm:w-4" aria-hidden />
+                  <p>
+                    <span className="font-bold">Schedule mode</span>{' '}
+                    <span className="text-white/70">
+                      — prepared {scheduleLabel || openLabel}. Menu browse freely.
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-brand sm:h-4 sm:w-4" aria-hidden />
+                  <p>
+                    <span className="font-bold">We’re closed right now.</span>{' '}
+                    <span className="text-white/70">Menu ok · {HOURS_LABEL}</span>
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-full bg-brand px-2.5 py-1 text-[11px] font-bold text-white hover:bg-brand-dark sm:text-xs"
+                    onClick={() => {
+                      const label = nextOpenFriendly()
+                      enableScheduleForOpen(label)
+                      openPicker()
+                      toast.success(`Schedule for ${label}`)
+                    }}
+                  >
+                    Schedule · {openLabel}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6 lg:h-[76px] lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5" aria-label="Breadline home">
             <Image
@@ -181,9 +259,14 @@ export function Header() {
         </div>
       </header>
 
-      {!onHome && (
-        <div className="h-14 pt-[env(safe-area-inset-top)] sm:h-16 lg:h-[76px]" aria-hidden />
-      )}
+      {/* Exact spacer = measured fixed header height (banner wrap-safe) */}
+      {showSpacer ? (
+        <div
+          style={{ height: headerHeight || undefined }}
+          className={cn(!headerHeight && 'h-14 sm:h-16 lg:h-[76px]')}
+          aria-hidden
+        />
+      ) : null}
 
       <MobileMenu open={menuOpen} onOpenChange={setMenuOpen} />
       <SearchModal open={searchOpen} onOpenChange={setSearchOpen} />

@@ -27,8 +27,8 @@ export function SearchModal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-white p-4 shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[10%] sm:max-h-[min(70vh,640px)] sm:w-[min(640px,92vw)] sm:-translate-x-1/2 sm:rounded-3xl sm:p-5">
+        <Dialog.Overlay className="fixed inset-0 z-[1200] bg-black/45 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-[1200] flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-white p-4 shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[10%] sm:max-h-[min(70vh,640px)] sm:w-[min(640px,92vw)] sm:-translate-x-1/2 sm:rounded-3xl sm:p-5">
           <div className="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-ink/15 sm:hidden" />
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="font-display text-lg tracking-[0.03em] sm:text-xl">

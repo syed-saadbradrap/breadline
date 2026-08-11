@@ -41,4 +41,6 @@ export interface Order {
   discount: number
   total: number
   estimatedMinutes: number
+  /** When set, kitchen should start at this time (scheduled while closed). */
+  scheduledFor?: string
 }

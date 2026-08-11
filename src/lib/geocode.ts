@@ -75,8 +75,25 @@ function buildStreet(a: NominatimResult['address'], fallbackName?: string): stri
   const line = [part(a.house_number), part(a.road || a.pedestrian || a.footway || a.path)]
     .filter(Boolean)
     .join(' ')
-  const area = part(a.neighbourhood || a.residential || a.quarter || a.suburb || a.village || a.hamlet)
-  return [line, area].filter(Boolean).join(', ') || part(fallbackName)
+  const area = part(
+    a.neighbourhood ||
+      a.residential ||
+      a.quarter ||
+      a.suburb ||
+      a.village ||
+      a.hamlet ||
+      a.city_district
+  )
+  // Prefer structured street+area; otherwise take first English chunks of display name
+  const structured = [line, area].filter(Boolean).join(', ')
+  if (structured) return structured
+  const fromDisplay = part(fallbackName)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s && !/^pakistan$/i.test(s) && !/^sindh$/i.test(s))
+    .slice(0, 3)
+    .join(', ')
+  return fromDisplay || part(fallbackName)
 }
 
 function buildCity(a: NominatimResult['address']): string {

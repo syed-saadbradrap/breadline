@@ -3,6 +3,9 @@ export type OnlineOrderStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled
 /** Rider delivery progress (stored inside payload so DB status check stays unchanged). */
 export type RiderDeliveryStatus = 'ready' | 'out_for_delivery' | 'delivered'
 
+/** Kitchen progress synced from POS for customer tracking. */
+export type KitchenProgressStatus = 'NEW' | 'PREPARING' | 'READY' | 'COMPLETED'
+
 export type OnlineOrderItem = {
   name: string
   quantity: number
@@ -33,6 +36,10 @@ export type OnlineOrderPayload = {
   discount: number
   total: number
   estimatedMinutes: number
+  /** ISO time when kitchen should start this order (scheduled while closed). */
+  scheduledFor?: string
+  kitchenStatus?: KitchenProgressStatus
+  kitchenUpdatedAt?: string
   riderStatus?: RiderDeliveryStatus
   riderUpdatedAt?: string
 }

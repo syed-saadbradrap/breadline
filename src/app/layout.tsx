@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/footer'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
 import { Preloader } from '@/components/layout/preloader'
 import { OrderTypePopup } from '@/components/layout/order-type-popup'
+import { StoreClosedPopup } from '@/components/layout/store-closed-popup'
 import './globals.css'
 
 const display = Bebas_Neue({
@@ -98,7 +99,7 @@ const jsonLd = {
   priceRange: '$$',
   telephone: '+92-342-4511939',
   email: 'contact@breadline.com',
-  openingHours: 'Mo-Su 16:00-04:00',
+  openingHours: 'Mo-Su 16:00-03:00',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Sector 9',
@@ -172,6 +173,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           </div>
         </div>
         <Preloader />
+        <StoreClosedPopup />
         <OrderTypePopup />
         <Header />
         <main className="flex-1">{children}</main>
