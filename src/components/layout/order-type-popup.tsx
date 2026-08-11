@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Bike, ShoppingBag, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
 const PRELOADER_KEY = 'bl-preloader-seen'
 
 export function OrderTypePopup() {
+  const pathname = usePathname()
   const hasChosen = useFulfillmentStore((s) => s.hasChosen)
   const orderType = useFulfillmentStore((s) => s.orderType)
   const pickerOpen = useFulfillmentStore((s) => s.pickerOpen)
@@ -57,6 +59,8 @@ export function OrderTypePopup() {
   }, [hydrated, ready, hasChosen, openPicker])
 
   const open = hydrated && ready && (pickerOpen || !hasChosen)
+
+  if (pathname.startsWith('/rider')) return null
 
   const choose = (type: OrderType) => {
     setOrderType(type)

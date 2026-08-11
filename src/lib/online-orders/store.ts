@@ -1,4 +1,9 @@
-import type { OnlineOrderPayload, OnlineOrderRecord, OnlineOrderStatus } from './types'
+import type {
+  OnlineOrderPayload,
+  OnlineOrderRecord,
+  OnlineOrderStatus,
+  RiderDeliveryStatus
+} from './types'
 
 type MemoryStore = {
   orders: OnlineOrderRecord[]
@@ -97,7 +102,9 @@ export async function listOnlineOrders(status?: OnlineOrderStatus): Promise<Onli
   })
   if (!res.ok) throw new Error('Failed to list online orders')
   const rows = (await res.json()) as Record<string, unknown>[]
-  return rows.map(rowToRecord)
+  return rows
+    .map(rowToRecord)
+    .filter((o) => o.orderNumber !== 'RIDER-PUSH' && o.id !== '00000000-0000-4000-8000-000000000001')
 }
 
 export async function updateOnlineOrder(
@@ -152,4 +159,138 @@ export function assertPosKey(request: Request) {
     ;(err as Error & { status: number }).status = 401
     throw err
   }
+}
+
+export function getRiderPin() {
+  return (process.env.RIDER_PIN || '4444').trim()
+}
+
+export function assertRiderPin(request: Request) {
+  const expected = getRiderPin()
+  const auth = request.headers.get('authorization') || ''
+  const headerPin = request.headers.get('x-rider-pin') || ''
+  const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : ''
+  const provided = (headerPin || bearer).trim()
+  if (!provided || provided !== expected) {
+    const err = new Error('Unauthorized')
+    ;(err as Error & { status: number }).status = 401
+    throw err
+  }
+}
+
+/**
+ * Rider jobs only after kitchen marks food ready (POS sets riderStatus).
+ * Until then accepted deliveries stay hidden from the rider portal.
+ */
+export async function listRiderOrders(opts?: {
+  includeDelivered?: boolean
+}): Promise<OnlineOrderRecord[]> {
+  const accepted = await listOnlineOrders('accepted')
+  const released = accepted.filter(
+    (o) =>
+      o.type === 'delivery' &&
+      (o.riderStatus === 'ready' ||
+        o.riderStatus === 'out_for_delivery' ||
+        o.riderStatus === 'delivered')
+  )
+  const includeDelivered = opts?.includeDelivered ?? true
+  const active = released.filter((o) => o.riderStatus !== 'delivered')
+  if (!includeDelivered) return active
+
+  const delivered = released.filter((o) => o.riderStatus === 'delivered').slice(0, 12)
+  return [...active, ...delivered]
+}
+
+export async function updateRiderStatus(
+  id: string,
+  riderStatus: RiderDeliveryStatus
+): Promise<OnlineOrderRecord | null> {
+  if (!hasSupabase()) {
+    const store = memory()
+    const idx = store.orders.findIndex((o) => o.id === id)
+    if (idx < 0) return null
+    const now = new Date().toISOString()
+    const previous = store.orders[idx].riderStatus
+    store.orders[idx] = {
+      ...store.orders[idx],
+      riderStatus,
+      riderUpdatedAt: now,
+      updatedAt: now
+    }
+    if (riderStatus === 'ready' && previous !== 'ready') {
+      void import('@/lib/rider-push/send')
+        .then(({ notifyRidersFoodReady }) =>
+          notifyRidersFoodReady({
+            id: store.orders[idx].id,
+            orderNumber: store.orders[idx].orderNumber,
+            customerName: store.orders[idx].customerName
+          })
+        )
+        .catch((err) => console.error('Rider push notify failed', err))
+    }
+    return store.orders[idx]
+  }
+
+  const url = new URL(`${process.env.SUPABASE_URL}/rest/v1/online_orders`)
+  url.searchParams.set('id', `eq.${id}`)
+  url.searchParams.set('select', '*')
+  const getRes = await fetch(url.toString(), {
+    headers: supabaseHeaders(),
+    cache: 'no-store'
+  })
+  if (!getRes.ok) throw new Error('Failed to load order')
+  const rows = (await getRes.json()) as Record<string, unknown>[]
+  if (!rows[0]) return null
+
+  const current = rowToRecord(rows[0])
+  if (current.type !== 'delivery' || current.status !== 'accepted') {
+    const err = new Error('Order is not available for rider update')
+    ;(err as Error & { status: number }).status = 400
+    throw err
+  }
+
+  const previousStatus = current.riderStatus
+  const now = new Date().toISOString()
+  const {
+    status: _status,
+    updatedAt: _updatedAt,
+    posOrderNumber: _posOrderNumber,
+    posOrderId: _posOrderId,
+    ...payloadBase
+  } = current
+  const payload: OnlineOrderPayload = {
+    ...payloadBase,
+    riderStatus,
+    riderUpdatedAt: now
+  }
+
+  const patchUrl = `${process.env.SUPABASE_URL}/rest/v1/online_orders?id=eq.${encodeURIComponent(id)}`
+  const res = await fetch(patchUrl, {
+    method: 'PATCH',
+    headers: supabaseHeaders(),
+    body: JSON.stringify({
+      payload,
+      updated_at: now
+    })
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Failed to update rider status: ${text}`)
+  }
+  const updated = (await res.json()) as Record<string, unknown>[]
+  const record = updated[0] ? rowToRecord(updated[0]) : null
+
+  if (record && riderStatus === 'ready' && previousStatus !== 'ready') {
+    void import('@/lib/rider-push/send')
+      .then(({ notifyRidersFoodReady }) =>
+        notifyRidersFoodReady({
+          id: record.id,
+          orderNumber: record.orderNumber,
+          customerName: record.customerName
+        })
+      )
+      .catch((err) => console.error('Rider push notify failed', err))
+  }
+
+  return record
 }

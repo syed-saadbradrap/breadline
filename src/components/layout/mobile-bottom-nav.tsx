@@ -15,6 +15,8 @@ export function MobileBottomNav() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
 
+  if (pathname.startsWith('/rider')) return null
+
   const item = (active: boolean) =>
     cn(
       'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold touch-manipulation',

@@ -1,8 +1,14 @@
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { siteInfo } from '@/data/site'
 
 export function Footer() {
+  const pathname = usePathname()
+  if (pathname.startsWith('/rider')) return null
+
   return (
     <footer className="mt-auto bg-ink text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 md:grid-cols-2 lg:grid-cols-4 lg:gap-12 lg:px-8">

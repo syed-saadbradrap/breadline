@@ -46,6 +46,11 @@ body {
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }
 
+body.rider-app {
+  padding-bottom: 0 !important;
+  background: #1a1212;
+}
+
 img,
 svg,
 video {

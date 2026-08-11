@@ -1,5 +1,8 @@
 export type OnlineOrderStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
 
+/** Rider delivery progress (stored inside payload so DB status check stays unchanged). */
+export type RiderDeliveryStatus = 'ready' | 'out_for_delivery' | 'delivered'
+
 export type OnlineOrderItem = {
   name: string
   quantity: number
@@ -30,6 +33,8 @@ export type OnlineOrderPayload = {
   discount: number
   total: number
   estimatedMinutes: number
+  riderStatus?: RiderDeliveryStatus
+  riderUpdatedAt?: string
 }
 
 export type OnlineOrderRecord = OnlineOrderPayload & {

@@ -2,16 +2,29 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 
 const SESSION_KEY = 'bl-preloader-seen'
 const MIN_MS = 2200
 
 export function Preloader() {
+  const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
+    if (pathname.startsWith('/rider')) {
+      try {
+        sessionStorage.setItem(SESSION_KEY, '1')
+      } catch {
+        /* ignore */
+      }
+      document.getElementById('bl-boot-screen')?.remove()
+      document.documentElement.classList.remove('bl-boot')
+      return
+    }
+
     let seen = false
     try {
       seen = sessionStorage.getItem(SESSION_KEY) === '1'
@@ -82,7 +95,9 @@ export function Preloader() {
       document.documentElement.classList.remove('bl-loading')
       document.body.style.overflow = ''
     }
-  }, [])
+  }, [pathname])
+
+  if (pathname.startsWith('/rider')) return null
 
   return (
     <AnimatePresence>
