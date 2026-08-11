@@ -102,7 +102,7 @@ export function Header() {
                   <p>
                     <span className="font-bold">Schedule mode</span>{' '}
                     <span className="text-white/70">
-                      — prepared {scheduleLabel || openLabel}. Menu browse freely.
+                      — prepared {scheduleLabel || openLabel}. Browse the menu anytime.
                     </span>
                   </p>
                 </>
@@ -111,7 +111,7 @@ export function Header() {
                   <Clock className="h-3.5 w-3.5 shrink-0 text-brand sm:h-4 sm:w-4" aria-hidden />
                   <p>
                     <span className="font-bold">We’re closed right now.</span>{' '}
-                    <span className="text-white/70">Menu ok · {HOURS_LABEL}</span>
+                    <span className="text-white/70">Menu available · {HOURS_LABEL}</span>
                   </p>
                   <button
                     type="button"

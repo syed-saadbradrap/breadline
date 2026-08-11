@@ -89,7 +89,7 @@ export function StoreClosedPopup() {
 
   function browseMenu() {
     dismiss()
-    toast.message('Menu browse karo — order kitchen open hone pe place hoga', {
+    toast.message('Browse the menu — place your order when the kitchen opens', {
       description: `We open ${nextOpenFriendly()}`
     })
     router.push('/menu')
@@ -99,7 +99,7 @@ export function StoreClosedPopup() {
     enableScheduleForOpen(nextOpenFriendly())
     dismiss()
     openPicker()
-    toast.success(`Schedule mode on — order ${nextOpenFriendly()} ke liye ready hoga`)
+    toast.success(`Schedule mode on — your order will be prepared ${nextOpenFriendly()}`)
   }
 
   return (
@@ -146,8 +146,8 @@ export function StoreClosedPopup() {
                 <span className="text-brand"> right now</span>
               </Dialog.Title>
               <Dialog.Description className="mt-2.5 max-w-sm text-[13px] leading-relaxed text-white/65 sm:text-sm">
-                Online ordering is paused. Menu dekh sakte ho, ya order schedule kar lo — kitchen{' '}
-                <strong className="font-semibold text-white">{openLabel}</strong> open hogi.
+                Online ordering is paused. You can browse the menu or schedule an order — the kitchen
+                opens <strong className="font-semibold text-white">{openLabel}</strong>.
               </Dialog.Description>
             </div>
 

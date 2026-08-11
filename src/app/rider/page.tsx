@@ -171,23 +171,23 @@ export default function RiderPage() {
 
   async function turnOnPush(p: string) {
     if (!pushSupported()) {
-      toast.error('Is phone pe push support nahi — Chrome use karo aur site Add to Home Screen karo')
+      toast.error("Push isn't supported on this phone — use Chrome and Add to Home Screen")
       return
     }
     setPushBusy(true)
     try {
       const result = await enableRiderPush(p)
       if (result === 'denied') {
-        toast.error('Notifications block hain — phone settings se Allow karo')
+        toast.error('Notifications are blocked — allow them in phone settings')
         setPushOn(false)
         return
       }
       if (result === 'unsupported') {
-        toast.error('Push notifications supported nahi')
+        toast.error("Push notifications aren't supported")
         return
       }
       setPushOn(true)
-      toast.success('Mobile notifications ON — food ready pe msg aayega')
+      toast.success("Mobile notifications on — you'll get an alert when food is ready")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Push enable failed')
     } finally {
@@ -402,8 +402,8 @@ export default function RiderPage() {
               </p>
               <p className="mt-0.5 text-xs opacity-80">
                 {pushOn
-                  ? 'Kitchen ready hote hi phone pe msg aayega — app band ho to bhi.'
-                  : 'ON karo taake food ready pe mobile pe alert mile.'}
+                  ? "You'll get a phone alert when kitchen marks ready — even if the app is closed."
+                  : 'Turn on to get a mobile alert when food is ready.'}
               </p>
             </div>
           </div>
@@ -426,8 +426,8 @@ export default function RiderPage() {
             <Package className="h-10 w-10 text-ink/25" />
             <p className="mt-3 font-semibold">Waiting for kitchen</p>
             <p className="mt-1 max-w-xs text-sm text-ink/50">
-              Jab kitchen order ready mark karegi, yahan notification aayegi — phir delivery
-              start karo.
+              When the kitchen marks an order ready, you&apos;ll get a notification here — then
+              start the delivery.
             </p>
           </div>
         ) : (
